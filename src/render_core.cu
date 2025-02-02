@@ -12,12 +12,15 @@ __device__ color ray_trace(const ray& r, hittable_list* world, curandState* loca
     ray cur_ray = r;
     color cur_attenuation = color(1.0f, 1.0f, 1.0f);
     color color_from_emission = color(0, 0, 0);    
+    // vec3 unit_direction = unit_vector(cur_ray.direction());
+    // float a = 0.5f*(unit_direction.y() + 1.0f);
+    // color c = (1.0f - a)*color(1.0f, 1.0f, 1.0f) + a*vec3(0.5f, 0.7f, 1.0f);
     color background = color(0, 0, 0); //Scene background color
 
     for(int i = 0;i < max_depth;i++) {
         hit_record rec;
      
-        if(world->hit(cur_ray, interval(0.001f, infinity), rec)) {
+        if(world->hit(cur_ray, interval(0.001f, infinity), rec, local_rand_state)) {
             ray scattered;
             color attenuation;
             color_from_emission += rec.mat->emit(rec, local_rand_state);
@@ -55,12 +58,12 @@ __global__ void render(
     vec3 ray_direction = pixel_center - d_camera->center;
 
     int pixel_idx = (x + y*d_camera->image_width);
-    curandState local_rand_state = rand_state[pixel_idx];
+    //curandState local_rand_state = rand_state[pixel_idx];
 
     color pixel_color = color(0.0f, 0.0f, 0.0f);
     int num_per_pixel_ratio = 1;
 
-    // used to check the visual appearance  
+    //check visual appearance
     // if(float(d_camera->image_width/3.0f) < x && x <= float(d_camera->image_width*2.0f)/3.0f ) {
     //      num_per_pixel_ratio = 8; 
     // } else if(float(d_camera->image_width*2.0f)/3.0f < x) {
@@ -68,12 +71,17 @@ __global__ void render(
     // }
 
     for(int i = 0;i < d_camera->samples_per_pixel * num_per_pixel_ratio;i++) {
+        //or update outside of the loop
+        curandState local_rand_state = rand_state[pixel_idx]; //generate local rand in each sampling
+
         ray r = d_camera->get_ray(x, y, &local_rand_state);
         
         pixel_color += ray_trace(r, world, &local_rand_state, d_camera->max_depth) * d_camera->pixel_samples_scale / num_per_pixel_ratio;
+        
+        rand_state[pixel_idx] = local_rand_state; //update local rand
     }
 
-    rand_state[pixel_idx] = local_rand_state;
+    //rand_state[pixel_idx] = local_rand_state;
 
     uchar4 pixel;    
     const interval intensity(0.0f, 1.0f);

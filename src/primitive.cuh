@@ -8,6 +8,7 @@
 #define SPHERE (1)
 #define QUAD (2)
 #define BOX (3)
+#define CONSTANT_MEDIUM (4)
 
 struct Quad {
     point3 Q;
@@ -75,6 +76,12 @@ public:
         set_quad_primitive(qb[5], point3(min3.x(), min3.y(), min3.z()), dx, dz);
     }
     
+    //convert to constant medium
+    __host__ __device__ void make_constant_medium(float d) {
+        neg_inv_density = -1.0f/d;
+        medium_flag = true;
+    }
+    
     //geometry manipulation
     __host__ __device__ void set_translate(const vec3& _t) {
         trans = _t;
@@ -114,7 +121,44 @@ public:
             (-sin_theta*rec.normal.x()) + (cos_theta*rec.normal.z())
         );
     }
-    __device__ bool hit(const ray& _r, interval ray_t, hit_record& rec, curandState *rand_state = NULL) const {
+
+    __device__ bool hit(const ray& r, interval ray_t, hit_record& rec, curandState *rand_state) const {
+        if(medium_flag) { //i.e., some medium case
+            hit_record rec1, rec2;
+
+            //check in
+            if(!_hit(r, interval(-infinity, +infinity), rec1, rand_state)) return false;
+           
+            //check out
+            if(!_hit(r, interval(rec1.t+0.01f, infinity), rec2, rand_state)) return false;
+
+            if(rec1.t < ray_t.min) rec1.t = ray_t.min;
+            if(rec2.t > ray_t.max) rec2.t = ray_t.max;
+
+            if(rec1.t >= rec2.t) return false;
+
+            if(rec1.t < 0) rec1.t = 0;
+
+            auto ray_length = r.direction().length();
+            auto distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
+            auto hit_distance = neg_inv_density * logf(random_float(rand_state));
+            
+            if(hit_distance > distance_inside_boundary) return false;
+
+            rec.t = rec1.t + hit_distance / ray_length;
+            rec.p = r.at(rec.t);
+
+            rec.normal = vec3(1, 0, 0);
+            rec.front_face = true;
+            rec.mat = mat;
+
+            return true;
+        }
+
+        return _hit(r, ray_t, rec, rand_state);
+    }
+
+    __device__ bool _hit(const ray& _r, interval ray_t, hit_record& rec, curandState *rand_state = NULL) const {
         //apply translation
         ray trans_r(_r.origin() - trans, _r.direction(), _r.time());
         //apply rotation
@@ -193,6 +237,10 @@ private:
 
     //for box
     struct Quad qb[6]; //used to define box
+
+    //for constant medium
+    float neg_inv_density;
+    bool medium_flag = false;
 
     //giving quad structure to be set
     __host__ __device__ void set_quad_primitive(struct Quad& q, const point3& Q, const vec3& u, const vec3&v) {

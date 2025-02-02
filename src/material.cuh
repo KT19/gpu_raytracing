@@ -5,6 +5,7 @@
 #define METAL (1)
 #define GLASS (2)
 #define DIFFUSE_LIGHT (3)
+#define ISOTROPIC (4)
 
 #include"hittable.cuh"
 #include"texture.cuh"
@@ -66,6 +67,10 @@ public:
 
             scattered = ray(rec.p, direction, r_in.time());
             
+            return true;
+        } else if(mat_type == ISOTROPIC) {
+            scattered = ray(rec.p, random_unit_vector(local_rand_state), r_in.time());
+
             return true;
         }
 
