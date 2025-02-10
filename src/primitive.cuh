@@ -116,7 +116,7 @@ public:
         );
         
         rec.normal = point3(
-            (cos_theta*rec.normal.x()) - (sin_theta*rec.normal.z()),
+            (cos_theta*rec.normal.x()) + (sin_theta*rec.normal.z()),
             (rec.normal.y()),
             (-sin_theta*rec.normal.x()) + (cos_theta*rec.normal.z())
         );
