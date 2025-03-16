@@ -19,6 +19,10 @@ Then,
 main
 ```
 
-Generated scenes.
-![cornell box](figures/cornell_box.png)
-![cornell smoke](figures/cornell_box_smoke.png)
+Generated scenes (See main.cu).
+
+- #include"scene_cornell_box.cu"
+  ![cornell box](figures/cornell_box.png)
+
+- #include"scene_cornell_smoke.cu"
+  ![cornell smoke](figures/cornell_box_smoke.png)
