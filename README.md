@@ -1,4 +1,4 @@
-# gpu_raytracing
+# Ray tracing in CUDA
 
 This repository is an implementation of ray tracing with CUDA.
 
