@@ -134,7 +134,7 @@ void create_cornell_box(int image_width, int image_height) {
     Camera* d_camera;
     printf("start camera init...\n");
     checkCudaErrors(cudaMalloc((void**)&d_camera, sizeof(Camera)));
-    camera_init<<<1, 1>>>(d_camera, image_height, image_width, 64, 5);
+    camera_init<<<1, 1>>>(d_camera, image_height, image_width, 1024, 5);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
     printf("end camera init...\n");
